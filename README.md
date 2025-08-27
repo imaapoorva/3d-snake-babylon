@@ -19,3 +19,5 @@ The snake moves in 3D space, eats food, and grows longer!
 Find index.html file.
 
 Double-click it → it will open in your default browser (Chrome, Edge, etc.).
+
+NOTE: snake eating food functionality is not proper.

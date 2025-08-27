@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>3D Snake Game - Babylon.js</title>
+    <style>
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #111; }
+      #gameCanvas { width: 100%; height: 100%; }
+      #startBtn {
+        position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+        padding: 10px 20px; font-size: 18px; cursor: pointer; background: #00b894; color: #fff; border: none; border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="startBtn">Start Game</button>
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const engine = new BABYLON.Engine(canvas, true);
+
+      let scene, snakeHead, food, snakeBody = [], direction = new BABYLON.Vector3(0,0,1);
+      let started = false;
+
+      function createScene() {
+        scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.2);
+
+        const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI/2, Math.PI/2.5, 20, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1,1,0), scene);
+
+        // Snake head
+        snakeHead = BABYLON.MeshBuilder.CreateSphere("snakeHead", {diameter: 1}, scene);
+        snakeHead.material = new BABYLON.StandardMaterial("snakeMat", scene);
+        snakeHead.material.diffuseColor = new BABYLON.Color3.Green();
+
+        // Food
+        food = BABYLON.MeshBuilder.CreateSphere("food", {diameter: 0.6}, scene);
+        food.material = new BABYLON.StandardMaterial("foodMat", scene);
+        food.material.diffuseColor = new BABYLON.Color3.Red();
+        placeFood();
+
+        return scene;
+      }
+
+      function placeFood() {
+        food.position = new BABYLON.Vector3(
+          Math.floor(Math.random() * 10 - 5),
+          Math.floor(Math.random() * 10 - 5),
+          Math.floor(Math.random() * 10 - 5)
+        );
+      }
+
+      // Handle movement keys
+      window.addEventListener("keydown", (event) => {
+        if (!started) return;
+
+        switch(event.key.toLowerCase()) {
+          case "w": direction = new BABYLON.Vector3(0, 0, 1); break;  // forward
+          case "s": direction = new BABYLON.Vector3(0, 0, -1); break; // backward
+          case "a": direction = new BABYLON.Vector3(-1, 0, 0); break; // left
+          case "d": direction = new BABYLON.Vector3(1, 0, 0); break;  // right
+          case "q": direction = new BABYLON.Vector3(0, 1, 0); break;  // up
+          case "e": direction = new BABYLON.Vector3(0, -1, 0); break; // down
+        }
+      });
+
+      // Start button
+      document.getElementById("startBtn").addEventListener("click", () => {
+        started = true;
+        snakeHead.position.set(0,0,0);
+        snakeBody = [];
+        placeFood();
+      });
+
+      // Game loop
+engine.runRenderLoop(() => {
+  if (scene) {
+    if (started) {
+      // Move head smoothly
+      snakeHead.position.addInPlace(direction.scale(0.1));
+
+      // --- Eating Food ---
+      if (snakeHead.intersectsMesh(food, false)) {
+        placeFood();
+        const newPart = BABYLON.MeshBuilder.CreateSphere("body", {diameter: 0.8}, scene);
+        newPart.material = new BABYLON.StandardMaterial("bodyMat", scene);
+        newPart.material.diffuseColor = new BABYLON.Color3(0, 0.6, 0);
+        
+        // Start new part at last body or head position
+        let attachPos = snakeBody.length > 0 
+          ? snakeBody[snakeBody.length - 1].position.clone() 
+          : snakeHead.position.clone();
+        newPart.position = attachPos;
+
+        snakeBody.push(newPart);
+      }
+
+      // --- Make body follow head ---
+      for (let i = snakeBody.length - 1; i > 0; i--) {
+        snakeBody[i].position = snakeBody[i - 1].position.clone();
+      }
+      if (snakeBody.length > 0) {
+        snakeBody[0].position = snakeHead.position.clone();
+      }
+    }
+    scene.render();
+  }
+});
+
+
+      window.addEventListener("resize", () => engine.resize());
+
+      createScene();
+    </script>
+  </body>
+</html>
